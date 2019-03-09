@@ -1,0 +1,191 @@
+package com.srpec.jdbc;
+
+import java.io.BufferedReader;
+import java.io.InputStreamReader;
+import java.sql.Connection;
+import java.sql.DriverManager;
+import java.sql.ResultSet;
+import java.sql.ResultSetMetaData;
+import java.sql.Statement;
+
+public class manageDatabase {
+	Connection conn = null;
+	Statement st = null;
+	ResultSet rs = null;
+	ResultSetMetaData rsmd = null;
+	BufferedReader br = null;
+	
+	public manageDatabase() throws Exception
+	{
+		Class.forName("oracle.jdbc.OracleDriver");
+		conn = DriverManager.getConnection("jdbc:oracle:thin:@localhost:1521:xe","username","password");
+		st = conn.createStatement();
+		br = new BufferedReader(new InputStreamReader(System.in));
+	}
+	
+	public void createDB() throws Exception {
+		
+		System.out.print("Enter Table Name You Want To Create:");
+		String tableName = br.readLine();
+		String str="";
+		String pkey=" Primary key(";
+		while(true) {
+		
+		System.out.print("Enter column name:");
+		String cname = br.readLine();
+		str += cname;
+		System.out.print("Enter Column type:");
+		str = str + " " + br.readLine();
+		System.out.print("Enter column size:");
+		str = str +" (" +Integer.parseInt(br.readLine()) + "),";
+		System.out.print("Do You Want It To Make Primary Key - yes/no:");
+		if(br.readLine().equalsIgnoreCase("yes")) pkey+=cname+",";
+		System.out.print("Do You Want To Add More Column - yes/no:");
+		if(br.readLine().equalsIgnoreCase("no")) {
+			break;
+		  }		
+		}
+		pkey=pkey.substring(0, pkey.length()-1);
+		String query = "create table " + tableName + " ("+str+pkey+"))";
+	  st.executeUpdate(query);
+		System.out.println("Table "+ tableName+" created successfully in database"  );	
+	}
+	
+	public  void insertDB() throws Exception {
+		
+		System.out.print("Enter table name to insert data:");
+		String table = br.readLine();
+	
+			 rs = st.executeQuery("select * from "+table);
+			 rsmd = rs.getMetaData();
+			int count = rsmd.getColumnCount();
+		
+		String	query = "insert into "+table+" values(";
+			for(int i=1; i<=count; i++) {
+				System.out.print("Enter "+rsmd.getColumnName(i)+"("+rsmd.getColumnTypeName(i)+"):");
+				String data = br.readLine();
+				query += "'"+data+"',";
+			}
+			query = query.substring(0, query.length()-1);
+			query += ")";
+			int c = st.executeUpdate(query);
+			System.out.println(c+" row inserted Successfully");
+		}
+	
+	public  void selectDB() throws Exception {
+		System.out.print("Enter table name display data:");
+		String table = br.readLine();
+		rs = st.executeQuery("select * from "+table);
+		rsmd = rs.getMetaData();
+		for(int i=1 ; i<=rsmd.getColumnCount() ; i++) {
+			System.out.print(String.format("%-25s", rsmd.getColumnName(i)));
+			
+		}
+		System.out.println();
+		while(rs.next()) {
+			for(int i=1 ; i<=rsmd.getColumnCount() ; i++) {
+				System.out.print(String.format("%-25s", rs.getString(i)));
+				
+			}
+			System.out.println();
+		}
+	
+	}
+	
+	public void deleteDB() throws Exception {
+		System.out.print("Enter table name to delete data:");
+		String table = br.readLine();
+	
+		rs = st.executeQuery("select * from "+table);
+		rsmd = rs.getMetaData();
+	
+			for(int i=1 ; i<=rsmd.getColumnCount() ; i++) {
+			if(rsmd.isNullable(i)==0) {
+			
+		System.out.print("Enter the "+rsmd.getColumnName(i)+" that you want to delete:");
+		String pKey = br.readLine();
+		
+		String dquery="delete from "+table+" where "+rsmd.getColumnName(i)+" = " + pKey;
+
+		int count = st.executeUpdate(dquery);
+		System.out.println("Successfully deleted "+count+" record");
+		break;
+			}
+			}
+	}
+	
+	public void updateDB() throws Exception {
+		System.out.print("Enter table name to update data:");
+		String table = br.readLine();
+		String pKeyC = null;
+		String pKey = null;
+		rs = st.executeQuery("select * from "+table);
+		rsmd = rs.getMetaData();
+		String query = "update "+table+" set ";
+		String query1 = "where ";
+			for(int i=1 ; i<=rsmd.getColumnCount() ; i++) {
+			if(rsmd.isNullable(i)==1) {
+				String C = rsmd.getColumnName(i);
+				System.out.print("Enter "+C+" for updation:");
+				String y = br.readLine();
+				query += C+"="+"'"+y+"' ,";
+			}
+			if(rsmd.isNullable(i)==0) {
+				pKeyC = rsmd.getColumnName(i);
+				System.out.print("Enter "+pKeyC+" for which you want to update record:");
+				pKey = br.readLine();
+				query1 += pKeyC+"='"+pKey+"' and ";
+			}
+			}
+			query1 = query1.substring(0, query1.length()-4); 
+			query = query.substring(0, query.length()-1);
+			query += query1;
+			int count = st.executeUpdate(query);
+			System.out.println(count +" record updated");
+			}
+	
+	public void deleteTable() throws Exception {
+		System.out.print("Enter table name to delete table:");
+		String table = br.readLine();
+	
+		st.execute("drop table "+table);
+		System.out.println("Table "+table+" dropped");
+	}
+	
+	
+	public static void main(String...string) throws Exception {
+		BufferedReader sc = new BufferedReader(new InputStreamReader(System.in));
+		String choice;
+		manageDatabase db = new manageDatabase();
+		while(true)
+		{
+		System.out.println("==========================================");
+		System.out.println("Enter 1 For Create  Table  Into Database");
+		System.out.println("Enter 2 For Insert  Record Into Database");
+		System.out.println("Enter 3 For Display Record From Database");
+		System.out.println("Enter 4 For Update  Record Into Database");
+		System.out.println("Enter 5 For Delete  Record From Database");
+		System.out.println("Enter 6 For Delete  Table  From Database");
+		System.out.println("Enter 7 For Exit");
+		System.out.println("==========================================");
+		
+		choice=sc.readLine();
+		
+		
+		switch(choice) {
+		case "1": db.createDB(); break;
+		case "2": db.insertDB(); break;
+		case "3": db.selectDB(); break;
+		case "4": db.updateDB(); break;
+		case "5": db.deleteDB(); break;
+		case "6": db.deleteTable(); break;
+		case "7": System.exit(0);
+		default: continue;
+		}
+		}
+
+		}
+
+	
+
+}
